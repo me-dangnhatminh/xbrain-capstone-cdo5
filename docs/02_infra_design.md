@@ -1346,7 +1346,11 @@ This protects AI cost and avoids repeated RCA.
 |Worker crash|Pod restart, worker logs, SQS FIFO message visible again|SQS FIFO retries message; worker resumes using DynamoDB state|RTO: <2 min / RPO: 0 (state in DynamoDB)|
 |Duplicate alert|Same alert_fingerprint|Update count/last_seen_at, skip new incident|RTO: 0 / RPO: 0|
 |Related alerts|Same correlation_key|Append to existing incident and update state|RTO: 0 / RPO: 0|
-|AI Engine unavailable|Worker call error, timeout|Do not mark AI step complete; retry/backoff; keep state in DynamoDB|RTO: <10 min / RPO: 0 (state preserved)|
+|AI Engine returns 400 (Bad Request / Tenant mismatch)|HTTP 400 response from /v1/triage|CDO Worker logs error, marks state FAILED_INVALID in DynamoDB, stops retrying to prevent loop, alerts operator|RTO: N/A / RPO: 0|
+|AI Engine returns 401 (Auth failed)|HTTP 401 response from /v1/triage|CDO Worker refreshes credentials/token from Secrets Manager, retries once. If failure persists, marks state AUTH_FAILED|RTO: <2 min / RPO: 0|
+|AI Engine returns 429 (Rate limited)|HTTP 429 response from /v1/triage|CDO Worker sends message back to SQS FIFO, performs exponential backoff retry|RTO: <10 min / RPO: 0|
+|AI Engine returns 500 (Unexpected error)|HTTP 500 response from /v1/triage|CDO Worker uses local rule-based fallback, creates fallback ticket with raw alert context, marks incident DIAGNOSED_FALLBACK|RTO: <5 min / RPO: 0|
+|AI Engine returns 503 / Timeout (AI unavailable)|HTTP 503 response or connection timeout|Retries via SQS FIFO. If outage exceeds timeout limit, falls back to rule-based triage to prevent pipeline block|RTO: <10 min / RPO: 0|
 |AI Engine S3 write failure|AI error, missing artifact URI|AI retries or returns artifact to Worker for storage|RTO: <5 min / RPO: Incomplete audit evidence|
 |Jira created but Integration Lambda crashes before Slack|DynamoDB has jira_ticket_id and current_step|On retry, skip Jira and continue Slack|RTO: <5 min / RPO: 0|
 |Slack failure|Integration Lambda error and last_error in DynamoDB|Retry Slack update using existing incident state|RTO: <5 min / RPO: 0|
