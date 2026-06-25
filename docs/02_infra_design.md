@@ -2,7 +2,7 @@
 
 ## 1. Architecture diagram
 
-![Architecture Diagram](assets/architecture-diagram.png)
+![Architecture Diagram](assets/infra-architecture-diagram.png)
 
 **Caption:**  
 This architecture uses Amazon EKS as the main runtime platform for the demo application, CDO Incident Correlator Worker, and Kubernetes-native observability stack. User traffic enters through an Application Load Balancer and reaches demo workloads running inside EKS.
