@@ -10,7 +10,7 @@
 
 ## 1. Security summary
 
-TF1 Triage Hub nhận alert từ observability stack, chuẩn hóa alert, đưa qua SQS/DLQ, gom thành incident, gọi AI Engine để RCA/summarize, rồi tạo payload cho Slack/Jira. Rủi ro chính:
+TF1 Triage Hub nhận alert từ observability stack, chuẩn hóa alert, đưa qua SQS FIFO/DLQ, gom thành incident, gọi AI Engine để RCA/summarize, rồi tạo payload cho Slack/Jira. Rủi ro chính:
 
 - tenant A đọc nhầm dữ liệu tenant B;
 - alert critical bị mất hoặc retry tạo duplicate Jira/Slack;
@@ -47,7 +47,7 @@ flowchart LR
     APP --> OBS[Prometheus/Loki]
     OBS --> AM[Alertmanager]
     AM --> LAMBDA[Ingest Lambda]
-    LAMBDA --> SQS[SQS Queue]
+    LAMBDA --> SQS[SQS FIFO Queue]
     SQS --> WORKER[EKS aiops Worker]
     SQS --> DLQ[SQS DLQ]
     WORKER --> AI[EKS AI Engine]
@@ -62,7 +62,7 @@ flowchart LR
 
 ![mermaid](../docs/assets/CDO-05%20Diagram-Page-3.drawio.png)
 
-Caption: public traffic chỉ tới Demo App/Public API qua ALB. AI Engine không public. Metrics/logs nằm ở Prometheus/Loki/CloudWatch, không dump raw vào SQS.
+Caption: public traffic chỉ tới Demo App/Public API qua ALB. AI Engine không public. Metrics/logs nằm ở Prometheus/Loki/CloudWatch, không dump raw vào SQS. TF1 client brief yêu cầu single-region `us-east-1`; nếu CDO-05 demo chạy `ap-southeast-1` theo infra/cost draft hiện tại thì phải ghi rõ là capstone demo deviation và xin mentor/client approve.
 
 ### 2.2 Network controls
 
@@ -95,7 +95,7 @@ Nếu dùng AWS VPC CNI, team cần xác nhận NetworkPolicy enforcement đã b
 
 | Role | Used by | Allow | Avoid |
 |---|---|---|---|
-| `tf1-ingest-lambda-role` | Ingest Lambda | `sqs:SendMessage` vào incident queue, CloudWatch Logs write, read webhook signing secret | `sqs:*`, DynamoDB write, Jira/Slack secret access |
+| `tf1-ingest-lambda-role` | Ingest Lambda | `sqs:SendMessage` vào incident FIFO queue, CloudWatch Logs write, read webhook signing secret | `sqs:*`, DynamoDB write, Jira/Slack secret access |
 | `tf1-correlator-worker-irsa-role` | K8s SA `aiops/correlator-worker` | SQS receive/delete/change visibility, DynamoDB read/write table cụ thể, S3 put/get audit bucket, read scoped secrets | `AdministratorAccess`, broad `s3:*`, broad `dynamodb:*`, observability admin |
 | `tf1-ai-engine-irsa-role` | K8s SA `ai-engine/ai-engine-api` | Read bounded evidence, optional `bedrock:InvokeModel`, read service auth secret | Jira/Slack tokens nếu không cần, cluster-admin, direct broad log access |
 | `tf1-observability-irsa-role` | Observability add-ons | Permission riêng cho log/metric backend nếu cần | Incident state mutation |
@@ -155,7 +155,7 @@ Anti-leak controls: không commit `.env`/token/webhook/kubeconfig; không bake s
 |---|---|---|
 | Metrics | Prometheus / managed metric backend | Retention bounded; label `tenant_id`, `service`, `env`; không chứa secret. |
 | Logs | Loki / CloudWatch Logs | Redaction, retention 7-14 ngày cho demo; không log token/header nhạy cảm. |
-| Alert event | SQS Incident Queue | Chỉ giữ normalized alert event, không chứa raw log blob. |
+| Alert event | SQS FIFO Incident Queue | Chỉ giữ normalized alert event, không chứa raw log blob; `MessageGroupId` theo tenant/service/correlation key và `MessageDeduplicationId` theo idempotency key. |
 | Failed alert | SQS DLQ | DLQ alarm > 0; restricted read; manual redrive. |
 | Incident state | DynamoDB | Workflow state/idempotency; conditional writes; TTL; PITR. |
 | Audit evidence | S3 | Alert payload, context snapshot, AI request/response, Jira/Slack payload; prefix theo tenant/service/incident. |
@@ -177,9 +177,9 @@ s3://tf1-audit/{tenant_id}/{service}/{incident_id}/...
 
 Encryption baseline:
 
-- SQS: SSE-SQS hoặc KMS CMK nếu alert payload nhạy cảm.
+- SQS FIFO: SSE-SQS hoặc KMS CMK nếu alert payload nhạy cảm.
 - DynamoDB: encryption at rest, PITR, TTL.
-- S3: Block Public Access, SSE-S3 baseline, SSE-KMS/Object Lock nếu cần forensic.
+- S3: Block Public Access, SSE-KMS baseline cho audit evidence; Object Lock 90 ngày là design target vì requirement cần immutable audit trail. Nếu Pack #2 chưa bật được Object Lock thì ghi rõ gap trong `07_test_eval_report.md`.
 - CloudWatch Logs: retention ngắn, KMS cho log group nhạy cảm nếu cần.
 - ECR: scan on push, immutable tags, lifecycle policy.
 
@@ -289,11 +289,12 @@ Capstone không phải compliance audit đầy đủ. Mục này chỉ map contr
 | SQ-04 | Bedrock có bật thật không? Nếu bật, model/cost cap là gì? | AIO-01 + CDO-05 | Before cost final |
 | SQ-05 | Audit evidence có cần Object Lock/KMS CMK không, hay SSE-S3 đủ cho capstone? | CDO-05 | Before final docs |
 | SQ-06 | Namespace model cuối cùng là by function hay by tenant/env? | CDO-05 | Before multi-tenant test |
+| SQ-07 | Region cuối cùng theo client brief `us-east-1` hay demo deviation `ap-southeast-1`? | CDO-05 | Before infra final |
 
 ---
 
 ## 11. Related documents
 
-- [`02_infra_design (1).md`](<02_infra_design (1).md>) - architecture, component choices, scaling/failure modes.
+- [`02_infra_design.md`](02_infra_design.md) - architecture, component choices, scaling/failure modes.
 - [`07_test_eval_report.md`](07_test_eval_report.md) - nơi ghi evidence thật cho tenant isolation, auth, DLQ, idempotency và secret scan.
 - [`08_adrs.md`](08_adrs.md) - ADR cho EKS, SQS/DLQ, DynamoDB idempotency, S3 audit.
