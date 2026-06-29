@@ -4,7 +4,8 @@ kind: Kustomization
 resources:
 - ../../base/ai-engine
 - ../../base/platform-service
-- mock-secrets.yaml
+- ../../base/simulator
+- external-secrets.yaml
 
 namePrefix: tf1-
 
@@ -13,12 +14,17 @@ configMapGenerator:
   literals:
   - ENV_NAME=sandbox
   - LOG_LEVEL=DEBUG
+  - SQS_QUEUE_URL=https://sqs.ap-southeast-1.amazonaws.com/458580846647/xbrain-cdo5-sandbox-incident-queue.fifo
+  - AI_ENGINE_URL=http://tf1-ai-engine:8080
   name: platform-config
 
 images:
 - name: ai-engine
-  newName: 856862064226.dkr.ecr.us-east-1.amazonaws.com/xbrain-cdo5-sandbox-tf1-ai-engine
+  newName: 458580846647.dkr.ecr.ap-southeast-1.amazonaws.com/xbrain-cdo5-sandbox-tf1-ai-engine
   newTag: sandbox-4bb0ea9
 - name: platform-service
-  newName: 856862064226.dkr.ecr.us-east-1.amazonaws.com/xbrain-cdo5-sandbox-tf1-platform-service
+  newName: 458580846647.dkr.ecr.ap-southeast-1.amazonaws.com/xbrain-cdo5-sandbox-tf1-platform-service
   newTag: sandbox-a993a71
+- name: simulator
+  newName: 458580846647.dkr.ecr.ap-southeast-1.amazonaws.com/xbrain-cdo5-sandbox-tf1-simulator
+  newTag: latest

@@ -22,6 +22,9 @@ spec:
           helm:
             valueFiles:
               - $values/manifests/overlays/{{env}}/values/prometheus-values.yaml
+              - $values/manifests/overlays/{{env}}/values/alertmanager-value.yml
+              - $values/manifests/overlays/{{env}}/values/grafana-values.yaml
+              - $values/manifests/overlays/{{env}}/values/alertmanager-value.yml
         - repoURL: "https://github.com/me-dangnhatminh/xbrain-capstone-cdo5.git"
           targetRevision: feat/implementation/minh
           ref: values
