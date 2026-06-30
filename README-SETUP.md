@@ -10,9 +10,9 @@ Vào **GitHub Repo → Settings → Secrets and Variables → Actions → Tab Va
 
 | Variable Name      | Ví dụ giá trị                                                    | Mô tả                        |
 | ------------------- | ---------------------------------------------------------------- | ----------------------------- |
-| `AWS_REGION`        | `ap-southeast-1`                                                 | Vùng AWS                      |
+| `AWS_REGION`        | `us-east-1`                                                 | Vùng AWS                      |
 | `AWS_ACCOUNT_ID`    | `458580846647`                                                   | ID tài khoản AWS              |
-| `ECR_REGISTRY`      | `458580846647.dkr.ecr.ap-southeast-1.amazonaws.com`              | Địa chỉ gốc ECR              |
+| `ECR_REGISTRY`      | `458580846647.dkr.ecr.us-east-1.amazonaws.com`              | Địa chỉ gốc ECR              |
 | `IAM_ROLE_ARN`      | `arn:aws:iam::458580846647:role/xbrain-cdo5-sandbox-ci`          | ARN của IAM Role cho CI       |
 | `ECR_REPO_PREFIX`   | `xbrain-cdo5`                                                   | Tiền tố tên ECR Repository    |
 
@@ -49,7 +49,7 @@ Sửa file `infra/environments/sandbox/terraform.tfvars` với thông tin của 
 ```hcl
 project              = "xbrain-cdo5"           # Tên dự án
 environment          = "sandbox"                # Môi trường (sandbox/staging/prod)
-aws_region           = "ap-southeast-1"         # Vùng AWS
+aws_region           = "us-east-1"         # Vùng AWS
 github_repo          = "<YOUR_USER>/<YOUR_REPO>" # Repo GitHub cho OIDC
 devops_team_role_arn = "<YOUR_DEVOPS_ROLE_ARN>"  # ARN Role SSO của team DevOps
 ```
@@ -68,7 +68,7 @@ devops_team_role_arn = "<YOUR_DEVOPS_ROLE_ARN>"  # ARN Role SSO của team DevOp
      --name "/xbrain-cdo5/argocd/github_token" \
      --value "<YOUR_TOKEN>" \
      --type "SecureString" \
-     --region ap-southeast-1
+     --region us-east-1
    ```
 
 ---
@@ -82,13 +82,13 @@ Chạy các lệnh sau để tạo secret cho môi trường `sandbox` (lặp l�
 # Thay thế các giá trị <YOUR_...> bằng giá trị thật của bạn
 ENV="sandbox"
 
-aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_email" --value "<YOUR_JIRA_EMAIL>" --type "SecureString" --region ap-southeast-1
-aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_url" --value "<YOUR_JIRA_URL>" --type "SecureString" --region ap-southeast-1
-aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_user" --value "<YOUR_JIRA_USER>" --type "SecureString" --region ap-southeast-1
-aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_project_key" --value "<YOUR_PROJECT_KEY>" --type "SecureString" --region ap-southeast-1
-aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_api_key" --value "<YOUR_JIRA_API_KEY>" --type "SecureString" --region ap-southeast-1
-aws ssm put-parameter --name "/xbrain-cdo5/$ENV/slack_webhook_url" --value "<YOUR_SLACK_WEBHOOK>" --type "SecureString" --region ap-southeast-1
-aws ssm put-parameter --name "/xbrain-cdo5/$ENV/sqs_queue_url" --value "<YOUR_SQS_QUEUE_URL>" --type "SecureString" --region ap-southeast-1
+aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_email" --value "<YOUR_JIRA_EMAIL>" --type "SecureString" --region us-east-1
+aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_url" --value "<YOUR_JIRA_URL>" --type "SecureString" --region us-east-1
+aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_user" --value "<YOUR_JIRA_USER>" --type "SecureString" --region us-east-1
+aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_project_key" --value "<YOUR_PROJECT_KEY>" --type "SecureString" --region us-east-1
+aws ssm put-parameter --name "/xbrain-cdo5/$ENV/jira_api_key" --value "<YOUR_JIRA_API_KEY>" --type "SecureString" --region us-east-1
+aws ssm put-parameter --name "/xbrain-cdo5/$ENV/slack_webhook_url" --value "<YOUR_SLACK_WEBHOOK>" --type "SecureString" --region us-east-1
+aws ssm put-parameter --name "/xbrain-cdo5/$ENV/sqs_queue_url" --value "<YOUR_SQS_QUEUE_URL>" --type "SecureString" --region us-east-1
 ```
 
 ---
