@@ -92,3 +92,8 @@ module "incident_ingest" {
   lambda_zip_output_path = "${path.module}/.temp/ingest_lambda.zip"
   ssm_parameter_prefix   = "/${var.project}/${var.environment}"
 }
+
+resource "kubectl_manifest" "argocd_root" {
+  depends_on = [module.eks_addons]
+  yaml_body  = file("${path.module}/../../../manifests/argocd/root.yaml")
+}
