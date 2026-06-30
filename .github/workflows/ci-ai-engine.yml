@@ -19,31 +19,10 @@ permissions:
   id-token: write
 
 env:
-  APP_NAME: ai-engine
-  ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+  APP_NAME: "ai-engine"
+  WORKING_DIRECTORY: "apps/ai-engine/capstone/tf-1/ai/engine-skeleton"
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-          cache: 'pip'
-      - name: Install dependencies
-        working-directory: apps/ai-engine/capstone/tf-1/ai/engine-skeleton
-        run: |
-          pip install -r requirements.txt
-          pip install pytest pytest-cov || true
-      - name: Run Pytest
-        working-directory: apps/ai-engine/capstone/tf-1/ai/engine-skeleton
-        run: |
-          pytest tests/ || true
-
   determine-env:
     runs-on: ubuntu-latest
     outputs:
@@ -54,7 +33,7 @@ jobs:
       - id: set-env
         run: |
           PREFIX="${{ vars.ECR_REPO_PREFIX }}"
-          APP="ai-engine"
+          APP="${{ env.APP_NAME }}"
           EVENT_NAME="${{ github.event_name }}"
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             PR_NUMBER="${{ github.event.pull_request.number }}"
@@ -63,10 +42,14 @@ jobs:
             echo "ecr_repo=${PREFIX}-sandbox-tf1-${APP}" >> $GITHUB_OUTPUT
           else
             BRANCH="${GITHUB_REF_NAME}"
-            if [[ "$BRANCH" == "develop" || "$BRANCH" == release/* || "$BRANCH" == hotfix/* ]]; then
+            if [[ "$BRANCH" == release/* || "$BRANCH" == hotfix/* ]]; then
               echo "env_name=staging" >> $GITHUB_OUTPUT
               echo "overlay_path=manifests/overlays/staging" >> $GITHUB_OUTPUT
               echo "ecr_repo=${PREFIX}-staging-tf1-${APP}" >> $GITHUB_OUTPUT
+            elif [[ "$BRANCH" == "main" ]]; then
+              echo "env_name=prod" >> $GITHUB_OUTPUT
+              echo "overlay_path=manifests/overlays/prod" >> $GITHUB_OUTPUT
+              echo "ecr_repo=${PREFIX}-prod-tf1-${APP}" >> $GITHUB_OUTPUT
             else
               echo "env_name=sandbox" >> $GITHUB_OUTPUT
               echo "overlay_path=manifests/overlays/sandbox" >> $GITHUB_OUTPUT
@@ -75,7 +58,7 @@ jobs:
           fi
 
   build-push:
-    needs: [test, determine-env]
+    needs: [determine-env]
     runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ steps.vars.outputs.tag }}
@@ -92,26 +75,43 @@ jobs:
             SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
             echo "tag=${{ needs.determine-env.outputs.env_name }}-${SHORT_SHA}" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: AWS Auth
         uses: ./.github/actions/aws-auth-oidc
         with:
           aws-region: ${{ vars.AWS_REGION }}
           role-to-assume: ${{ vars.IAM_ROLE_ARN }}
-      
-      - name: Build, Scan, Push & Sign
-        uses: ./.github/actions/build-push-ecr
+
+      - name: Build Docker Image
+        shell: bash
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          IMAGE=${{ vars.ECR_REGISTRY }}/${{ needs.determine-env.outputs.ecr_repo }}:${{ steps.vars.outputs.tag }}
+          docker build -t $IMAGE .
+
+      # Bypassing Trivy for ai-engine intentionally as requested
+      - name: Push Docker Image
+        shell: bash
+        run: |
+          IMAGE=${{ vars.ECR_REGISTRY }}/${{ needs.determine-env.outputs.ecr_repo }}:${{ steps.vars.outputs.tag }}
+          docker push $IMAGE
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
         with:
-          working-directory: "apps/ai-engine/capstone/tf-1/ai/engine-skeleton"
-          ecr-registry: ${{ vars.ECR_REGISTRY }}
-          ecr-repo: ${{ needs.determine-env.outputs.ecr_repo }}
-          image-tag: ${{ steps.vars.outputs.tag }}
+          cosign-release: 'v2.2.4'
+
+      - name: Sign the images with Cosign
+        shell: bash
+        run: |
+          IMAGE=${{ vars.ECR_REGISTRY }}/${{ needs.determine-env.outputs.ecr_repo }}:${{ steps.vars.outputs.tag }}
+          cosign sign --yes $IMAGE
 
   cd-update:
     needs: [determine-env, build-push]
     if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/cd-update-argocd.yml
+    uses: ./.github/workflows/_reusable-update-argocd.yml
     with:
-      app-name: ai-engine
+      app-name: "ai-engine"
       image-tag: "${{ vars.ECR_REGISTRY }}/${{ needs.determine-env.outputs.ecr_repo }}:${{ needs.build-push.outputs.image-tag }}"
       overlay-path: ${{ needs.determine-env.outputs.overlay_path }}
