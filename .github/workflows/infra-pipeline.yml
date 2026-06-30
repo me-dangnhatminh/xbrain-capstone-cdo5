@@ -18,6 +18,11 @@ on:
       - "infra/**"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
 jobs:
   determine-env:
     runs-on: ubuntu-latest
