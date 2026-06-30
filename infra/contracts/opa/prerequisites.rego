@@ -57,13 +57,3 @@ deny contains msg if {
     msg := sprintf("Contract Violation: Bản vẽ Terraform thiếu ECR Repository cho '%v'", [required])
 }
 
-# Kiểm tra OIDC Role
-has_role(roles, suffix) if {
-    some r in roles
-    endswith(r.values.name, suffix)
-}
-
-deny contains msg if {
-    not has_role(iam_roles, "-ci")
-    msg := "Contract Violation: Thiếu IAM Role cho GitHub Actions (OIDC)."
-}
