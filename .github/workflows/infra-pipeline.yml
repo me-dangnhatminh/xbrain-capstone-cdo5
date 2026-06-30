@@ -58,6 +58,7 @@ jobs:
     with:
       environment: ${{ needs.determine-env.outputs.env_name }}
       tf_working_dir: ${{ needs.determine-env.outputs.tf_working_dir }}
+    secrets: inherit
 
   apply:
     needs: determine-env
@@ -66,3 +67,4 @@ jobs:
     with:
       environment: ${{ needs.determine-env.outputs.env_name }}
       tf_working_dir: ${{ needs.determine-env.outputs.tf_working_dir }}
+    secrets: inherit

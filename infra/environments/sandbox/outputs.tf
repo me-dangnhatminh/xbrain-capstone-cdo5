@@ -36,3 +36,21 @@ output "ingest_webhook_url" {
   description = "Public URL of the Ingest Lambda Webhook"
   value       = module.incident_ingest.apigw_url
 }
+
+# ==========================================
+# GITHUB ENVIRONMENT OUTPUTS
+# ==========================================
+output "aws_account_id" {
+  description = "AWS Account ID for GitHub Actions"
+  value       = data.aws_caller_identity.current.account_id
+}
+
+output "ecr_registry_url" {
+  description = "ECR Registry URL for GitHub Actions"
+  value       = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+}
+
+output "ecr_repo_prefix" {
+  description = "ECR Repository Prefix"
+  value       = var.project
+}
