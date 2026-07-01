@@ -60,7 +60,7 @@ jobs:
           name: tfplan-${{ inputs.environment }}
           path: |
             ${{ inputs.tf_working_dir }}/tfplan
-            ${{ inputs.tf_working_dir }}/.temp/
+            ${{ inputs.tf_working_dir }}/.temp/**/*.zip
           retention-days: 1
 
       - name: Save Plan Output
