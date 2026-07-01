@@ -61,6 +61,7 @@ jobs:
           path: |
             ${{ inputs.tf_working_dir }}/tfplan
             ${{ inputs.tf_working_dir }}/builds/
+            ${{ inputs.tf_working_dir }}/.temp/
           retention-days: 1
 
       - name: Save Plan Output
