@@ -63,6 +63,7 @@ jobs:
             !${{ inputs.tf_working_dir }}/.terraform/**
             !${{ inputs.tf_working_dir }}/.terraform*
             !${{ inputs.tf_working_dir }}/**/*.tf
+          include-hidden-files: true
           retention-days: 1
 
       - name: Save Plan Output
