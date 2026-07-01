@@ -2,6 +2,12 @@ locals {
   prefix = "${var.project}-${var.environment}"
 }
 
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_dir  = var.lambda_source_dir
+  output_path = "${path.root}/.temp/${local.prefix}-ingest-alert.zip"
+}
+
 module "lambda_function" {
   source  = "terraform-aws-modules/lambda/aws"
   version = "~> 6.0"
@@ -13,8 +19,8 @@ module "lambda_function" {
   timeout       = 10
   memory_size   = 256
 
-  create_package = true
-  source_path    = var.lambda_source_dir
+  create_package         = false
+  local_existing_package = data.archive_file.lambda_zip.output_path
 
   reserved_concurrent_executions = var.lambda_reserved_concurrency >= 0 ? var.lambda_reserved_concurrency : -1
   kms_key_arn                    = var.enable_kms ? var.kms_key_arn : null
