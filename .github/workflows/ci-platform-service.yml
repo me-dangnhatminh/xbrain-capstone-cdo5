@@ -24,3 +24,4 @@ jobs:
     with:
       app_name: "platform-service"
       working_directory: "apps/platform-service"
+    secrets: inherit
