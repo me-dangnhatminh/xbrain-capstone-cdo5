@@ -58,7 +58,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan-${{ inputs.environment }}
-          path: ${{ inputs.tf_working_dir }}/tfplan
+          path: |
+            ${{ inputs.tf_working_dir }}/tfplan
+            ${{ inputs.tf_working_dir }}/builds/
           retention-days: 1
 
       - name: Save Plan Output
