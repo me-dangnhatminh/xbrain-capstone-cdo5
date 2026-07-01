@@ -24,3 +24,4 @@ jobs:
     with:
       app_name: "simulator"
       working_directory: "apps/simulator"
+    secrets: inherit

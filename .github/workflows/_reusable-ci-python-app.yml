@@ -98,3 +98,4 @@ jobs:
       app-name: ${{ inputs.app_name }}
       image-tag: "${{ vars.ECR_REGISTRY }}/${{ needs.determine-env.outputs.ecr_repo }}:${{ needs.build-push.outputs.image-tag }}"
       overlay-path: ${{ needs.determine-env.outputs.overlay_path }}
+    secrets: inherit
