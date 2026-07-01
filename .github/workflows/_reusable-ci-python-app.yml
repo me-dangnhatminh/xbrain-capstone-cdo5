@@ -35,7 +35,11 @@ jobs:
       - name: Run Pytest
         working-directory: ${{ inputs.working_directory }}
         run: |
-          PYTHONPATH=. pytest tests/
+          if [ -d "tests" ]; then
+            PYTHONPATH=. pytest tests/
+          else
+            echo "No tests directory found. Skipping tests."
+          fi
 
   determine-env:
     runs-on: ubuntu-latest
