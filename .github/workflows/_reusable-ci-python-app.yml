@@ -10,6 +10,9 @@ on:
         required: true
         type: string
         description: "Path to the app directory (e.g. apps/ai-engine)"
+    secrets:
+      GH_PAT:
+        required: true
 
 permissions:
   contents: write
@@ -98,4 +101,5 @@ jobs:
       app-name: ${{ inputs.app_name }}
       image-tag: "${{ vars.ECR_REGISTRY }}/${{ needs.determine-env.outputs.ecr_repo }}:${{ needs.build-push.outputs.image-tag }}"
       overlay-path: ${{ needs.determine-env.outputs.overlay_path }}
-    secrets: inherit
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}

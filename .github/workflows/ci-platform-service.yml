@@ -24,4 +24,5 @@ jobs:
     with:
       app_name: "platform-service"
       working_directory: "apps/platform-service"
-    secrets: inherit
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
