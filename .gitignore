@@ -5,6 +5,7 @@
 .terraform/
 .terraform.lock.hcl
 *.tfvars
+!terraform.tfvars
 !*.tfvars.example
 crash.log
 override.tf
@@ -50,3 +51,7 @@ package-lock.json
 .obsidian/
 .temp/
 .tmp/
+
+# Terraform Plan outputs
+infra/environments/**/tfplan
+infra/environments/**/plan.json

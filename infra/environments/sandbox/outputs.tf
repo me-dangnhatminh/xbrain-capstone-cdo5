@@ -29,10 +29,28 @@ output "ecr_repository_urls" {
 # ==========================================
 output "sqs_queue_url" {
   description = "URL of the Incident SQS FIFO Queue"
-  value       = module.incident_ingest.sqs_queue_url
+  value       = module.queue.incident_queue_url
 }
 
 output "ingest_webhook_url" {
   description = "Public URL of the Ingest Lambda Webhook"
-  value       = module.incident_ingest.apigw_url
+  value       = module.incident_ingest.webhook_url
+}
+
+# ==========================================
+# GITHUB ENVIRONMENT OUTPUTS
+# ==========================================
+output "aws_account_id" {
+  description = "AWS Account ID for GitHub Actions"
+  value       = data.aws_caller_identity.current.account_id
+}
+
+output "ecr_registry_url" {
+  description = "ECR Registry URL for GitHub Actions"
+  value       = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+}
+
+output "ecr_repo_prefix" {
+  description = "ECR Repository Prefix"
+  value       = var.project
 }
